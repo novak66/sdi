@@ -1,0 +1,59 @@
+#!/bin/bash
+#!/bin/bash
+
+########################## ****** ############################
+make clean > /dev/null
+make > /dev/null
+########################## ****** ############################
+
+########################## ****** ############################
+### Arquivo de Entrada: ambiente.in (configurações)
+read Nro_proc
+nro_proc=`echo $Nro_proc | cut -d " " -f 2`
+#echo $nro_proc
+
+# Configurações dos clientes
+read Clients
+#echo $Clients
+read Hosts
+#echo $Hosts
+
+## Leitura dados do Servidor
+read serv
+#echo $serv
+
+pos=1
+while [[ $pos < 9 ]]
+do
+    read serv
+    echo "$serv" >> myserv.conf
+    pos=`expr $pos + 1`;
+done
+
+dir=`pwd`
+ssh localhost "cd $dir; java -Djava.rmi.server.hostname=10.20.221.235 BGServer < myserv.conf" &
+
+## Leitura dados dos Clientes
+read jump
+read jump
+
+for i in `seq 1 $nro_proc`
+do
+    sleep 1
+    read pCli
+    echo $pCli > meuclient.cli$i
+    read QtdCli
+    echo $QtdCli >> meuclient.cli$i
+    pos=`expr $i + 1`
+    nom_maquinas=`echo $Hosts | cut -d " " -f $pos`
+    px=`echo $Clients | cut -d " " -f $pos`
+    mydir=`echo "\tmp\mydirtmp${RANDOM:0:5}"`
+    ssh $nom_maquinas mkdir $mydir
+    scp *.class $nom_maquinas:$mydir > /dev/null
+    scp meuclient.cli$i $nom_maquinas:$mydir > /dev/null
+    ssh $nom_maquinas "cd $mydir; java $px ens5 $i < meuclient.cli$i"
+    rm -f meuclient.cli$i
+    ssh $nom_maquinas rm -rf $mydir
+done
+
+rm -f myserv.conf 
